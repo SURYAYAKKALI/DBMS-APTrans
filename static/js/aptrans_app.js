@@ -95,6 +95,9 @@ function switchTab(tabId) {
     }
 }
 
+// Expose navigation globally
+window.switchTab = switchTab;
+
 // =============================================================
 // TAB 0: LIVE CONCURRENCY STUDIO (BREAK IT & FIX IT)
 // =============================================================
@@ -431,6 +434,11 @@ function stopSimPlay() {
     if (window.lucide) window.lucide.createIcons();
 }
 
+window.resetSim = resetSim;
+window.nextSimStep = nextSimStep;
+window.prevSimStep = prevSimStep;
+window.toggleSimPlay = toggleSimPlay;
+
 function renderStepView() {
     const scn = LIVE_SCENARIOS[LiveSimState.scenarioKey];
     const mode = scn.modes[LiveSimState.modeKey];
@@ -680,6 +688,9 @@ function renderPatternCards(patterns) {
     }
 }
 
+// Expose navigation globally
+window.switchTab = switchTab;
+
 window.selectPatternForGeneration = function(patternId) {
     APState.selectedPatternId = patternId;
     const selectElem = document.getElementById("gen-pattern-select");
@@ -740,6 +751,7 @@ async function triggerGeneration() {
         alert("Generation failed: " + err.message);
     }
 }
+window.triggerGeneration = triggerGeneration;
 
 function renderGeneratedTransactions(caseData) {
     document.getElementById("gen-pattern-badge").textContent = `${caseData.pattern_id}: ${caseData.pattern_name}`;
@@ -809,6 +821,7 @@ async function triggerExecution() {
         alert("Execution failed: " + err.message);
     }
 }
+window.triggerExecution = triggerExecution;
 
 function renderExecutionTrace(data) {
     const trace = data.trace;
@@ -1020,6 +1033,7 @@ async function runCaseStudy(id) {
         alert("Case study execution failed: " + err.message);
     }
 }
+window.runCaseStudy = runCaseStudy;
 
 // -------------------------------------------------------------
 // Tab 6: Benchmark & Ablation Lab
