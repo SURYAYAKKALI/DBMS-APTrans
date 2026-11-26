@@ -3,15 +3,12 @@ Write-Host "=======================================================" -Foreground
 Write-Host "  DBGuard: Intelligent Database Integrity & Concurrency" -ForegroundColor Cyan
 Write-Host "=======================================================" -ForegroundColor Cyan
 
-$VenvPython = ".\.venv\Scripts\python.exe"
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+Set-Location $ScriptDir
 
-if (-Not (Test-Path $VenvPython)) {
-    Write-Host "[!] Virtual environment not found. Setting up..." -ForegroundColor Yellow
-    python -m venv .venv
-    & ".\.venv\Scripts\pip.exe" install -r requirements.txt
-}
+$VenvPython = if (Test-Path ".\.venv\Scripts\python.exe") { ".\.venv\Scripts\python.exe" } else { "python" }
 
-Write-Host "`n[*] Starting DBGuard Web Server on http://127.0.0.1:5000 ..." -ForegroundColor Green
+Write-Host "`n[*] Starting APTrans / DBGuard Web Server on http://127.0.0.1:5000 ..." -ForegroundColor Green
 Write-Host "[*] Open your browser and navigate to: http://127.0.0.1:5000`n" -ForegroundColor Green
 
 & $VenvPython "run.py"
