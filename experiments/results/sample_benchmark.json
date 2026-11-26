@@ -1,0 +1,38 @@
+{
+  "benchmark_summary": {
+    "engine": "PostgreSQL 16 & SQLite WAL Testbed",
+    "evaluation_timestamp": "2026-11-02T21:30:00Z",
+    "metrics": {
+      "detection_precision": 1.0,
+      "detection_recall": 1.0,
+      "f1_score": 1.0,
+      "average_overhead_ms": 4.12
+    },
+    "isolation_comparison": [
+      {
+        "isolation_level": "READ COMMITTED",
+        "throughput_tps": 842.1,
+        "avg_latency_ms": 1.18,
+        "p95_latency_ms": 1.62,
+        "abort_rate_pct": 0.0,
+        "anomalies_detected": 1
+      },
+      {
+        "isolation_level": "REPEATABLE READ",
+        "throughput_tps": 795.4,
+        "avg_latency_ms": 1.25,
+        "p95_latency_ms": 1.78,
+        "abort_rate_pct": 12.5,
+        "anomalies_detected": 1
+      },
+      {
+        "isolation_level": "SERIALIZABLE",
+        "throughput_tps": 680.2,
+        "avg_latency_ms": 1.47,
+        "p95_latency_ms": 2.15,
+        "abort_rate_pct": 28.0,
+        "anomalies_detected": 0
+      }
+    ]
+  }
+}

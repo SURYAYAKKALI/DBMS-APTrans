@@ -1,0 +1,44 @@
+{
+  "experiments": [
+    {
+      "id": "E1",
+      "name": "The Last Item Problem (Lost Update)",
+      "concurrency": 2,
+      "workload": "lost_update",
+      "isolation_levels": ["READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"],
+      "expected_outcome": "Lost update under Read Committed; prevented under Serializable / OCC"
+    },
+    {
+      "id": "E2",
+      "name": "Inventory Reservation & Overbooking (Write Skew)",
+      "concurrency": 2,
+      "workload": "write_skew",
+      "isolation_levels": ["READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"],
+      "expected_outcome": "Invariant breach under Read Committed and Repeatable Read; prevented under Serializable"
+    },
+    {
+      "id": "E3",
+      "name": "Fuzzy Read / Non-Repeatable Read",
+      "concurrency": 2,
+      "workload": "non_repeatable_read",
+      "isolation_levels": ["READ COMMITTED", "REPEATABLE READ"],
+      "expected_outcome": "Permitted in Read Committed; Snapshot consistency enforced in Repeatable Read"
+    },
+    {
+      "id": "E4",
+      "name": "Mixed Read/Write Workload",
+      "concurrency": 10,
+      "workload": "stress_concurrency",
+      "isolation_levels": ["READ COMMITTED", "REPEATABLE READ", "SERIALIZABLE"],
+      "expected_outcome": "Measures throughput (TPS) vs abort rates under varying contention"
+    },
+    {
+      "id": "E5",
+      "name": "High Concurrency Stress Workload",
+      "concurrency": 20,
+      "workload": "stress_concurrency",
+      "isolation_levels": ["READ COMMITTED"],
+      "expected_outcome": "Evaluates instrumentation overhead and queue scalability"
+    }
+  ]
+}

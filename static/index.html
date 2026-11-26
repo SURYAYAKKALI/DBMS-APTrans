@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TransactionGuard — Intelligent Database Transaction Anomaly Detection & Concurrency Assurance Platform</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#060a12',
+                        cardbg: '#0f172a',
+                        surface: '#131e36',
+                        accent: '#4f46e5',
+                        accentlight: '#818cf8',
+                        danger: '#ef4444',
+                        success: '#10b981',
+                        warning: '#f59e0b'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #060a12; color: #f1f5f9; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .glass-panel { background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .tab-btn.active { background: rgba(79, 70, 229, 0.2); color: #818cf8; border-color: rgba(99, 102, 241, 0.5); font-weight: 600; }
+        .graph-node { transition: all 0.2s ease-in-out; cursor: pointer; }
+        .graph-node:hover { filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.6)); }
+        .cycle-highlight { stroke: #ef4444 !important; stroke-width: 3 !important; stroke-dasharray: 6 3; animation: dash 1s linear infinite; }
+        @keyframes dash { to { stroke-dashoffset: -18; } }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b1120; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; rounded: 4px; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+    <!-- Top Navigation Header -->
+    <header class="sticky top-0 z-50 px-6 py-3 border-b border-slate-800 bg-slate-950/90 backdrop-blur-md flex flex-wrap items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <div class="p-2 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-500 text-white shadow-lg shadow-indigo-500/20">
+                <i data-lucide="shield-alert" class="w-6 h-6"></i>
+            </div>
+            <div>
+                <div class="flex items-center gap-2">
+                    <h1 class="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-sky-300 to-teal-300">TransactionGuard</h1>
+                    <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-indigo-950 text-indigo-300 border border-indigo-800">CONCURRENCY ASSURANCE</span>
+                    <span class="px-2 py-0.5 text-[10px] font-mono font-bold rounded bg-emerald-950 text-emerald-300 border border-emerald-800" id="db-status-pill">DB: ONLINE</span>
+                </div>
+                <p class="text-[11px] text-slate-400 hidden sm:block">Intelligent Database Transaction Anomaly Detection & Concurrency Assurance Platform</p>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs (Section 12.1 of Proposal) -->
+        <nav class="flex items-center gap-1 p-1 rounded-xl bg-slate-900 border border-slate-800 overflow-x-auto max-w-full">
+            <button onclick="switchTab('overview')" id="tab-overview" class="tab-btn active flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-transparent text-xs text-slate-300 hover:text-white transition">
+                <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i> Overview
+            </button>
+            <button onclick="switchTab('demo')" id="tab-demo" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-transparent text-xs text-amber-300 hover:text-amber-200 transition font-bold bg-amber-950/30">
+                <i data-lucide="play-circle" class="w-3.5 h-3.5 text-amber-400"></i> Live Demo (The Last Item)
+            </button>
+            <button onclick="switchTab('testing-lab')" id="tab-testing-lab" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-transparent text-xs text-slate-300 hover:text-white transition">
+                <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i> Testing Lab
+            </button>
+            <button onclick="switchTab('explorer')" id="tab-explorer" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-transparent text-xs text-slate-300 hover:text-white transition">
+                <i data-lucide="list-ordered" class="w-3.5 h-3.5"></i> Transaction Explorer
+            </button>
+            <button onclick="switchTab('graph')" id="tab-graph" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-transparent text-xs text-slate-300 hover:text-white transition">
+                <i data-lucide="git-fork" class="w-3.5 h-3.5"></i> Dependency Graph
+            </button>
+            <button onclick="switchTab('anomalies')" id="tab-anomalies" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-transparent text-xs text-slate-300 hover:text-white transition">
+                <i data-lucide="search" class="w-3.5 h-3.5"></i> Investigation
+            </button>
+            <button onclick="switchTab('consistency')" id="tab-consistency" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-transparent text-xs text-slate-300 hover:text-white transition">
+                <i data-lucide="check-check" class="w-3.5 h-3.5"></i> Consistency Rules
+            </button>
+            <button onclick="switchTab('analytics')" id="tab-analytics" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-transparent text-xs text-slate-300 hover:text-white transition">
+                <i data-lucide="bar-chart-2" class="w-3.5 h-3.5"></i> Analytics
+            </button>
+            <button onclick="switchTab('projects')" id="tab-projects" class="tab-btn flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-transparent text-xs text-slate-300 hover:text-white transition">
+                <i data-lucide="database" class="w-3.5 h-3.5"></i> Projects & DB
+            </button>
+        </nav>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+
+        <!-- ================================================================= -->
+        <!-- TAB 1: OVERVIEW DASHBOARD (Section 12.2)                           -->
+        <!-- ================================================================= -->
+        <section id="panel-overview" class="space-y-6">
+            <!-- Hero Stats Grid -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+                <div class="glass-panel p-4 rounded-xl">
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Runs</div>
+                    <div class="text-2xl font-bold text-white" id="kpi-runs">0</div>
+                    <div class="text-[10px] text-indigo-400 mt-1 flex items-center gap-1"><i data-lucide="activity" class="w-3 h-3"></i> Automated test runs</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl">
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Total Transactions</div>
+                    <div class="text-2xl font-bold text-white" id="kpi-txns">0</div>
+                    <div class="text-[10px] text-emerald-400 mt-1 flex items-center gap-1"><i data-lucide="check" class="w-3 h-3"></i> Tracked sessions</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl">
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Committed</div>
+                    <div class="text-2xl font-bold text-emerald-400" id="kpi-committed">0</div>
+                    <div class="text-[10px] text-slate-400 mt-1" id="kpi-success-rate">100% success</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl">
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Aborted</div>
+                    <div class="text-2xl font-bold text-rose-400" id="kpi-aborted">0</div>
+                    <div class="text-[10px] text-slate-400 mt-1">Concurrency aborts</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl border-amber-900/30 bg-amber-950/10">
+                    <div class="text-[11px] font-semibold text-amber-300 uppercase tracking-wider mb-1">Anomalies Detected</div>
+                    <div class="text-2xl font-bold text-amber-400" id="kpi-anomalies">0</div>
+                    <div class="text-[10px] text-amber-300 mt-1 flex items-center gap-1"><i data-lucide="alert-triangle" class="w-3 h-3"></i> Violations & skews</div>
+                </div>
+                <div class="glass-panel p-4 rounded-xl">
+                    <div class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-1">Consistency Status</div>
+                    <div class="text-sm font-bold text-emerald-400 mt-1 flex items-center gap-1.5" id="kpi-status">
+                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span> SECURE
+                    </div>
+                    <div class="text-[10px] text-slate-400 mt-1">4 Invariants active</div>
+                </div>
+            </div>
+
+            <!-- Quick Action Banners -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-panel p-5 rounded-xl border-indigo-800/40 bg-gradient-to-br from-indigo-950/40 to-slate-900 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-2 text-indigo-300 font-bold text-sm mb-1">
+                            <i data-lucide="play" class="w-4 h-4"></i> Live Story: The Last Item Problem
+                        </div>
+                        <p class="text-xs text-slate-300 mb-3">Reproduce overselling and lost updates on 1 available laptop, then verify how atomic guards preserve business invariants.</p>
+                    </div>
+                    <button onclick="switchTab('demo')" class="w-full py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                        Launch Live Demonstration <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-xl border-slate-800 bg-slate-900 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-2 text-sky-300 font-bold text-sm mb-1">
+                            <i data-lucide="git-commit" class="w-4 h-4"></i> Concurrency Testing Lab
+                        </div>
+                        <p class="text-xs text-slate-300 mb-3">Configure schedules, isolation levels (Read Committed, Repeatable Read, Serializable), and inject race conditions.</p>
+                    </div>
+                    <button onclick="switchTab('testing-lab')" class="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                        Open Testing Lab <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+
+                <div class="glass-panel p-5 rounded-xl border-slate-800 bg-slate-900 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center gap-2 text-purple-300 font-bold text-sm mb-1">
+                            <i data-lucide="bar-chart" class="w-4 h-4"></i> Isolation Benchmark Suite
+                        </div>
+                        <p class="text-xs text-slate-300 mb-3">Side-by-side performance & anomaly comparison matrix across Read Committed vs Repeatable Read vs Serializable.</p>
+                    </div>
+                    <button onclick="switchTab('analytics')" class="w-full py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center justify-center gap-1.5 transition">
+                        Compare Isolation Levels <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Isolation Level Anomaly Matrix (Section 9.7) -->
+            <div class="glass-panel p-5 rounded-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i data-lucide="table" class="w-4 h-4 text-indigo-400"></i> PostgreSQL Isolation Level Anomaly Disallowance Matrix
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Reference: Berenson et al. (1995) & PostgreSQL Concurrency Control Specifications</p>
+                    </div>
+                    <span class="text-xs text-slate-400 font-mono">Formal Guarantee Reference</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
+                                <th class="py-2.5 px-3">Anomaly Category</th>
+                                <th class="py-2.5 px-3">PostgreSQL Read Committed</th>
+                                <th class="py-2.5 px-3">Repeatable Read (Snapshot)</th>
+                                <th class="py-2.5 px-3">Serializable (SSI)</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-800 font-mono text-[11px]">
+                            <tr>
+                                <td class="py-2 px-3 font-semibold text-slate-200">Dirty Read (G1a/G1b)</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-3 font-semibold text-slate-200">Non-Repeatable Read (G1c)</td>
+                                <td class="py-2 px-3 text-amber-400">Possible</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-3 font-semibold text-slate-200">Lost Update (P4)</td>
+                                <td class="py-2 px-3 text-rose-400">Possible in read-modify-write</td>
+                                <td class="py-2 px-3 text-sky-400">Concurrent updates rejected</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-3 font-semibold text-slate-200">Write Skew (A5B)</td>
+                                <td class="py-2 px-3 text-amber-400">Possible</td>
+                                <td class="py-2 px-3 text-amber-400">Possible (SI allows write skew!)</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented via SSI anti-dep check</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-3 font-semibold text-slate-200">Dirty Write (G0)</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented</td>
+                            </tr>
+                            <tr>
+                                <td class="py-2 px-3 font-semibold text-slate-200">Read Skew (A5A)</td>
+                                <td class="py-2 px-3 text-amber-400">Possible</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented within snapshot</td>
+                                <td class="py-2 px-3 text-emerald-400">Prevented</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- TAB 2: LIVE DEMONSTRATION STORY (Section 22 of Proposal)          -->
+        <!-- ================================================================= -->
+        <section id="panel-demo" class="space-y-6 hidden">
+            <div class="glass-panel p-5 rounded-xl border-amber-900/40 bg-gradient-to-r from-amber-950/20 via-slate-900 to-indigo-950/20">
+                <div class="flex flex-wrap items-center justify-between gap-4">
+                    <div>
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-amber-400 bg-amber-950/60 px-2 py-0.5 rounded border border-amber-800/60">Section 22 Demonstration Strategy</span>
+                        <h2 class="text-xl font-bold text-white mt-1">Live Story: The Last Item Problem</h2>
+                        <p class="text-xs text-slate-300 mt-1 max-w-2xl">
+                            Witness silent logical corruption in action. Two simultaneous users attempt to purchase the single last available developer laptop. Follow the 5-step demonstration lifecycle:
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="resetDemoItem()" class="px-3 py-1.5 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 flex items-center gap-1.5 transition">
+                            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset Inventory
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Story 5 Steps Tracker -->
+                <div class="grid grid-cols-1 sm:grid-cols-5 gap-2 mt-4 text-xs font-mono">
+                    <div class="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-center">
+                        <span class="text-indigo-400 block font-bold mb-0.5">Step 1</span>
+                        <span class="text-slate-300">1 Available Laptop</span>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-center">
+                        <span class="text-indigo-400 block font-bold mb-0.5">Step 2</span>
+                        <span class="text-slate-300">Launch 2 Txns</span>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-center">
+                        <span class="text-indigo-400 block font-bold mb-0.5">Step 3</span>
+                        <span class="text-slate-300">Observe Lost Update</span>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-center">
+                        <span class="text-indigo-400 block font-bold mb-0.5">Step 4</span>
+                        <span class="text-slate-300">Apply Correction</span>
+                    </div>
+                    <div class="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-center">
+                        <span class="text-indigo-400 block font-bold mb-0.5">Step 5</span>
+                        <span class="text-slate-300">Verify Invariant</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Demo Interactive Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Case A: Vulnerable Execution -->
+                <div class="glass-panel p-5 rounded-xl border-rose-900/40 bg-slate-900 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950 text-rose-300 border border-rose-800">BEFORE CORRECTION</span>
+                            <span class="text-xs text-slate-400 font-mono">Read Committed</span>
+                        </div>
+                        <h3 class="text-base font-bold text-white">Vulnerable Read-Modify-Write</h3>
+                        <p class="text-xs text-slate-300 mt-1 mb-3">Both transactions read stock=1 into memory, verify stock >= 1, and concurrently write stock=0. Both commit with HTTP 200, but 2 users bought 1 item!</p>
+                        
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs font-mono space-y-1 text-slate-400 mb-4">
+                            <div>1. T1: READ inventory (qty = 1)</div>
+                            <div>2. T2: READ inventory (qty = 1)</div>
+                            <div>3. T1: UPDATE inventory = 0 -> COMMIT</div>
+                            <div>4. T2: UPDATE inventory = 0 -> COMMIT</div>
+                            <div class="text-rose-400 font-bold mt-1.5 flex items-center gap-1">
+                                <i data-lucide="x-circle" class="w-3.5 h-3.5"></i> Flaw: T1 update overwritten by T2!
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="runDemo(false)" class="w-full py-2.5 px-4 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-rose-600/20">
+                        <i data-lucide="play" class="w-4 h-4"></i> Trigger Vulnerable Concurrency
+                    </button>
+                </div>
+
+                <!-- Case B: Corrected Execution -->
+                <div class="glass-panel p-5 rounded-xl border-emerald-900/40 bg-slate-900 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-300 border border-emerald-800">AFTER CORRECTION</span>
+                            <span class="text-xs text-slate-400 font-mono">Atomic Guard / SERIALIZABLE</span>
+                        </div>
+                        <h3 class="text-base font-bold text-white">Guarded Transactional Logic</h3>
+                        <p class="text-xs text-slate-300 mt-1 mb-3">Uses atomic database predicate or Serializable concurrency control. The first committer succeeds; the second is cleanly aborted or rejected.</p>
+                        
+                        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs font-mono space-y-1 text-slate-400 mb-4">
+                            <div class="text-emerald-300">-- Atomic Deduction Strategy</div>
+                            <div>UPDATE inventory SET quantity = quantity - 1</div>
+                            <div>WHERE equipment_id = 'EQ-LAPTOP-01' AND quantity >= 1;</div>
+                            <div class="text-emerald-400 font-bold mt-1.5 flex items-center gap-1">
+                                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Invariant Preserved: Exactly 1 sold!
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="runDemo(true)" class="w-full py-2.5 px-4 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-lg shadow-emerald-600/20">
+                        <i data-lucide="shield-check" class="w-4 h-4"></i> Run Mitigated Execution
+                    </button>
+                </div>
+            </div>
+
+            <!-- Demo Live Output Console -->
+            <div id="demo-output-container" class="glass-panel p-5 rounded-xl hidden">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="terminal" class="w-4 h-4 text-indigo-400"></i> Execution Trace & Anomaly Investigation Evidence
+                    </h3>
+                    <span id="demo-badge" class="px-2.5 py-0.5 rounded text-xs font-mono font-bold"></span>
+                </div>
+                <div id="demo-details" class="space-y-3"></div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- TAB 3: TESTING LABORATORY (Section 12.3)                          -->
+        <!-- ================================================================= -->
+        <section id="panel-testing-lab" class="space-y-6 hidden">
+            <div class="glass-panel p-6 rounded-xl">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                    <div>
+                        <h2 class="text-lg font-bold text-white flex items-center gap-2">
+                            <i data-lucide="flask-conical" class="w-5 h-5 text-indigo-400"></i> Concurrency Testing Laboratory
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-1">Configure workload generation, isolation guarantees, and execution schedule parameters.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Workload Selection -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold uppercase text-slate-300">Workload Anomaly Pattern</label>
+                        <select id="lab-workload" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+                            <option value="lost_update">The Last Item Problem (Lost Update / P4)</option>
+                            <option value="write_skew">Doctor On Duty (Write Skew / A5B)</option>
+                            <option value="non_repeatable_read">Fuzzy Read (Non-Repeatable Read / G1c)</option>
+                            <option value="dirty_read">Uncommitted Read (Dirty Read / G1a)</option>
+                            <option value="read_skew">Snapshot Asymmetry (Read Skew / A5A)</option>
+                            <option value="stress_concurrency">High-Concurrency Multi-Session Stress Test</option>
+                        </select>
+                        <p class="text-[11px] text-slate-400" id="workload-desc">Targeted pattern-guided concurrent transaction sequences.</p>
+                    </div>
+
+                    <!-- Isolation Level -->
+                    <div class="space-y-2">
+                        <label class="block text-xs font-semibold uppercase text-slate-300">Target Isolation Level</label>
+                        <select id="lab-isolation" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-indigo-500">
+                            <option value="READ COMMITTED">PostgreSQL READ COMMITTED (Default)</option>
+                            <option value="REPEATABLE READ">PostgreSQL REPEATABLE READ (Snapshot)</option>
+                            <option value="SERIALIZABLE">PostgreSQL SERIALIZABLE (SSI)</option>
+                            <option value="READ UNCOMMITTED">READ UNCOMMITTED</option>
+                        </select>
+                        <p class="text-[11px] text-slate-400">Evaluates actual behavior against theoretical guarantees.</p>
+                    </div>
+
+                    <!-- Concurrency Workers & Mitigation -->
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <label class="font-semibold uppercase text-slate-300">Concurrent Sessions</label>
+                                <span class="font-mono text-indigo-400 font-bold" id="concurrency-val">2</span>
+                            </div>
+                            <input type="range" id="lab-concurrency" min="2" max="20" value="2" oninput="document.getElementById('concurrency-val').innerText = this.value" class="w-full accent-indigo-500">
+                        </div>
+
+                        <div class="flex items-center gap-2 pt-1">
+                            <input type="checkbox" id="lab-mitigation" class="w-4 h-4 rounded text-indigo-600 bg-slate-900 border-slate-700">
+                            <label for="lab-mitigation" class="text-xs text-slate-300 select-none cursor-pointer">
+                                Apply Corrective Mitigation Strategy (Atomic/OCC)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-5 border-t border-slate-800 flex justify-end gap-3">
+                    <button onclick="executeLabRun()" id="btn-run-lab" class="py-2.5 px-6 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-2 transition shadow-lg shadow-indigo-600/30">
+                        <i data-lucide="play" class="w-4 h-4"></i> Execute Controlled Workload
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lab Result Output -->
+            <div id="lab-result-card" class="glass-panel p-5 rounded-xl hidden">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i> Workload Execution & Detection Summary
+                    </h3>
+                    <span id="lab-status-badge" class="px-2.5 py-0.5 rounded text-xs font-mono font-bold"></span>
+                </div>
+                <div id="lab-result-content"></div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- TAB 4: TRANSACTION EXPLORER (Section 12.4)                        -->
+        <!-- ================================================================= -->
+        <section id="panel-explorer" class="space-y-6 hidden">
+            <div class="glass-panel p-5 rounded-xl">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i data-lucide="list-ordered" class="w-4 h-4 text-indigo-400"></i> Transaction Execution Explorer & Timeline
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Chronologically ordered execution events across all concurrent sessions.</p>
+                    </div>
+                    <button onclick="refreshExplorer()" class="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1.5 transition">
+                        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Refresh Timeline
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
+                                <th class="py-2.5 px-3">Seq #</th>
+                                <th class="py-2.5 px-3">Txn ID</th>
+                                <th class="py-2.5 px-3">Session</th>
+                                <th class="py-2.5 px-3">Operation</th>
+                                <th class="py-2.5 px-3">Entity & Row ID</th>
+                                <th class="py-2.5 px-3">Old Value</th>
+                                <th class="py-2.5 px-3">New Value</th>
+                                <th class="py-2.5 px-3">Version</th>
+                                <th class="py-2.5 px-3">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="timeline-table-body" class="divide-y divide-slate-800 font-mono text-[11px]">
+                            <tr>
+                                <td colspan="9" class="py-6 text-center text-slate-500">No events captured yet. Run a workload from Testing Lab or Live Demo!</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- TAB 5: DEPENDENCY GRAPH (Section 12.5)                            -->
+        <!-- ================================================================= -->
+        <section id="panel-graph" class="space-y-6 hidden">
+            <div class="glass-panel p-5 rounded-xl">
+                <div class="flex flex-wrap items-center justify-between gap-4 mb-3">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i data-lucide="git-fork" class="w-4 h-4 text-indigo-400"></i> Reconstructed Transaction Dependency Graph
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Adya's graph model: Directed edges reflect Write-Read (WR), Anti-dependency (RW), and Write-Write (WW).</p>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs bg-slate-900 px-3 py-1.5 rounded-lg border border-slate-800">
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> WR</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> RW (Anti-Dep)</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> WW</span>
+                    </div>
+                </div>
+
+                <!-- Interactive SVG Canvas -->
+                <div class="w-full h-[450px] bg-slate-950 rounded-xl border border-slate-800 relative overflow-hidden flex items-center justify-center" id="svg-graph-container">
+                    <svg id="dependency-svg" class="w-full h-full"></svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- TAB 6: ANOMALY INVESTIGATION (Section 12.6)                       -->
+        <!-- ================================================================= -->
+        <section id="panel-anomalies" class="space-y-6 hidden">
+            <div class="glass-panel p-5 rounded-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i data-lucide="search" class="w-4 h-4 text-indigo-400"></i> Anomaly Investigation & Root-Cause Explanations
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Explainability engine output with actual evidence and corrective SQL code.</p>
+                    </div>
+                </div>
+
+                <div id="investigations-list" class="space-y-4">
+                    <div class="text-center py-10 text-slate-500 text-xs font-mono">
+                        No active anomalies detected. Execute a vulnerable workload to view investigation findings.
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- TAB 7: CONSISTENCY ASSURANCE (Section 12.7)                       -->
+        <!-- ================================================================= -->
+        <section id="panel-consistency" class="space-y-6 hidden">
+            <div class="glass-panel p-5 rounded-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i data-lucide="check-check" class="w-4 h-4 text-indigo-400"></i> Active Business Invariant Rules
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Application-level consistency conditions validated continuously across transactions.</p>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="rules-grid"></div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- TAB 8: PERFORMANCE ANALYTICS (Section 12.8)                       -->
+        <!-- ================================================================= -->
+        <section id="panel-analytics" class="space-y-6 hidden">
+            <div class="glass-panel p-5 rounded-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <div>
+                        <h2 class="text-base font-bold text-white flex items-center gap-2">
+                            <i data-lucide="bar-chart-2" class="w-4 h-4 text-indigo-400"></i> Isolation Level Comparative Performance Benchmark
+                        </h2>
+                        <p class="text-xs text-slate-400 mt-0.5">Empirical comparison across Read Committed, Repeatable Read, and Serializable.</p>
+                    </div>
+                    <button onclick="runBenchmarkSuite()" class="text-xs px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold flex items-center gap-1.5 transition">
+                        <i data-lucide="play" class="w-3.5 h-3.5"></i> Run Benchmark Suite
+                    </button>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-800 text-slate-400 uppercase tracking-wider font-semibold">
+                                <th class="py-2.5 px-3">Isolation Level</th>
+                                <th class="py-2.5 px-3">Throughput (TPS)</th>
+                                <th class="py-2.5 px-3">Avg Latency</th>
+                                <th class="py-2.5 px-3">P95 Latency</th>
+                                <th class="py-2.5 px-3">Abort Rate</th>
+                                <th class="py-2.5 px-3">Anomalies Detected</th>
+                                <th class="py-2.5 px-3">Overhead</th>
+                            </tr>
+                        </thead>
+                        <tbody id="benchmark-table-body" class="divide-y divide-slate-800 font-mono text-[11px]">
+                            <tr>
+                                <td colspan="7" class="py-6 text-center text-slate-500">Click "Run Benchmark Suite" to measure real-time throughput and latency percentiles.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================================================================= -->
+        <!-- TAB 9: PROJECTS & DATABASE CONFIG (Section 12.1)                  -->
+        <!-- ================================================================= -->
+        <section id="panel-projects" class="space-y-6 hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Projects List -->
+                <div class="glass-panel p-5 rounded-xl">
+                    <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="folder" class="w-4 h-4 text-indigo-400"></i> Testing Projects
+                    </h3>
+                    <div id="projects-list" class="space-y-2 mt-3"></div>
+                </div>
+
+                <!-- Database Connection Diagnostic & Official DB Tester -->
+                <div class="glass-panel p-5 rounded-xl">
+                    <h3 class="text-base font-bold text-white mb-2 flex items-center gap-2">
+                        <i data-lucide="database" class="w-4 h-4 text-indigo-400"></i> Connect Official Target Database
+                    </h3>
+                    <p class="text-[11px] text-slate-400 mb-3">Connect TransactionGuard as an external anomaly testing oracle to any official PostgreSQL, MySQL, CockroachDB or MariaDB database instance.</p>
+                    
+                    <div class="space-y-3 text-xs">
+                        <div>
+                            <label class="block text-[11px] font-semibold uppercase text-slate-300 mb-1">Database Connection URI</label>
+                            <input type="text" id="custom-db-url" placeholder="postgresql://user:password@localhost:5432/testdb" 
+                                   class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-xs text-white font-mono focus:outline-none focus:border-indigo-500">
+                            <span class="text-[10px] text-slate-500 font-mono mt-0.5 block">Examples: postgresql://postgres:pass@localhost:5432/dbname or mysql+pymysql://root:pass@localhost:3306/dbname</span>
+                        </div>
+
+                        <div class="p-3 rounded-lg bg-slate-950 border border-slate-800 space-y-1 font-mono">
+                            <div><span class="text-slate-400">Active Engine:</span> <span class="text-indigo-300" id="diag-engine">Loading...</span></div>
+                            <div><span class="text-slate-400">Status:</span> <span class="text-emerald-400" id="diag-status">CONNECTED</span></div>
+                            <div><span class="text-slate-400">Multi-Connection Concurrency:</span> <span class="text-emerald-400">ACTIVE</span></div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button onclick="testDbConnection()" class="flex-1 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold flex items-center justify-center gap-2 transition">
+                                <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i> Test Connection
+                            </button>
+                            <button onclick="switchDbConnection()" class="flex-1 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-semibold flex items-center justify-center gap-2 transition">
+                                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i> Set As Target DB
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-800/80 px-6 py-4 text-center text-xs text-slate-500 font-mono">
+        TransactionGuard v2.0.0 · Intelligent Database Transaction Anomaly Detection & Concurrency Assurance Platform · SIGMOD/ACID Compliance
+    </footer>
+
+    <!-- Client-side Controller Script -->
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

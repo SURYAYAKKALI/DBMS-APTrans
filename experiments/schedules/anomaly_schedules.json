@@ -1,0 +1,30 @@
+{
+  "schedules": [
+    {
+      "name": "Lost Update Controlled Interleaving",
+      "steps": [
+        {"seq": 1, "txn": "TXN-01", "op": "BEGIN"},
+        {"seq": 2, "txn": "TXN-02", "op": "BEGIN"},
+        {"seq": 3, "txn": "TXN-01", "op": "READ", "target": "inventory:INV-LAPTOP-01"},
+        {"seq": 4, "txn": "TXN-02", "op": "READ", "target": "inventory:INV-LAPTOP-01"},
+        {"seq": 5, "txn": "TXN-01", "op": "WRITE", "target": "inventory:INV-LAPTOP-01", "val": 0},
+        {"seq": 6, "txn": "TXN-01", "op": "COMMIT"},
+        {"seq": 7, "txn": "TXN-02", "op": "WRITE", "target": "inventory:INV-LAPTOP-01", "val": 0},
+        {"seq": 8, "txn": "TXN-02", "op": "COMMIT"}
+      ]
+    },
+    {
+      "name": "Write Skew (Doctor-On-Duty)",
+      "steps": [
+        {"seq": 1, "txn": "TXN-01", "op": "BEGIN"},
+        {"seq": 2, "txn": "TXN-02", "op": "BEGIN"},
+        {"seq": 3, "txn": "TXN-01", "op": "READ", "target": "doctors:COUNT"},
+        {"seq": 4, "txn": "TXN-02", "op": "READ", "target": "doctors:COUNT"},
+        {"seq": 5, "txn": "TXN-01", "op": "WRITE", "target": "doctors:DOC-001", "on_duty": false},
+        {"seq": 6, "txn": "TXN-02", "op": "WRITE", "target": "doctors:DOC-002", "on_duty": false},
+        {"seq": 7, "txn": "TXN-01", "op": "COMMIT"},
+        {"seq": 8, "txn": "TXN-02", "op": "COMMIT"}
+      ]
+    }
+  ]
+}
